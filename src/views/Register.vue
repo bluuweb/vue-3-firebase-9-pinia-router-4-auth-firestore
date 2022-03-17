@@ -23,6 +23,7 @@
             return alert('llena los campos')
         }
         await userStore.registerUser(email.value, password.value)
+        alert('verifica tu cuenta de correo')
     }
 
 </script>
