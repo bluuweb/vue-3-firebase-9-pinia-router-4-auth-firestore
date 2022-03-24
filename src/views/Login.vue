@@ -1,4 +1,5 @@
 <template>
+    <h1 class="text-center">Login</h1>
     <a-row>
         <a-col :xs="{ span: 24 }" :sm="{ span: 12, offset: 6 }">
             <a-form
@@ -45,6 +46,7 @@
                         type="primary"
                         html-type="submit"
                         :disabled="userStore.loadingUser"
+                        :loading="userStore.loadingUser"
                         >Ingresar</a-button
                     >
                 </a-form-item>
@@ -56,6 +58,7 @@
 <script setup>
 import { reactive } from "vue";
 import { useUserStore } from "../stores/user";
+import { message } from "ant-design-vue";
 
 const userStore = useUserStore();
 
@@ -66,7 +69,28 @@ const formState = reactive({
 
 const onFinish = async (values) => {
     console.log("Success:", values);
-    await userStore.loginUser(formState.email, formState.password);
+    const error = await userStore.loginUser(
+        formState.email,
+        formState.password
+    );
+
+    if (!error) {
+        return message.success("Bienvenidos a la super apps 💋");
+    }
+
+    switch (error) {
+        case "auth/user-not-found":
+            message.error("No existe el correo registrado 💋");
+            break;
+        case "auth/wrong-password":
+            message.error("Error de contraseña 💋");
+            break;
+        default:
+            message.error(
+                "Ocurrió un error en el servidor 💋 intentelo más tarde..."
+            );
+            break;
+    }
 };
 
 const onFinishFailed = (errorInfo) => {

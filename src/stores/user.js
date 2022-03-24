@@ -25,7 +25,8 @@ export const useUserStore = defineStore("userStore", {
                 await sendEmailVerification(auth.currentUser);
                 router.push("/login");
             } catch (error) {
-                console.log(error);
+                console.log(error.code);
+                return error.code;
             } finally {
                 this.loadingUser = false;
             }
@@ -41,7 +42,8 @@ export const useUserStore = defineStore("userStore", {
                 this.userData = { email: user.email, uid: user.uid };
                 router.push("/");
             } catch (error) {
-                console.log(error);
+                console.log(error.code);
+                return error.code;
             } finally {
                 this.loadingUser = false;
             }
