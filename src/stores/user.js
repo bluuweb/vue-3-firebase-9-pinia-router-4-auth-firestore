@@ -5,8 +5,11 @@ import {
     sendEmailVerification,
     signInWithEmailAndPassword,
     signOut,
+    updateProfile,
 } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { doc, getDoc, setDoc } from "firebase/firestore/lite";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { auth, db, storage } from "../firebaseConfig";
 import router from "../router";
 import { useDatabaseStore } from "./database";
 
@@ -31,6 +34,48 @@ export const useUserStore = defineStore("userStore", {
                 this.loadingUser = false;
             }
         },
+        async updateImg(imagen) {
+            try {
+                // console.log(imagen);
+                const storageRef = ref(storage, `${this.userData.uid}/perfil`);
+                await uploadBytes(storageRef, imagen.originFileObj);
+                const photoURL = await getDownloadURL(storageRef);
+                await updateProfile(auth.currentUser, {
+                    photoURL,
+                });
+                this.setUser(auth.currentUser);
+            } catch (error) {
+                console.log(error);
+                return error.code;
+            }
+        },
+        async updateUser(displayName) {
+            try {
+                await updateProfile(auth.currentUser, {
+                    displayName,
+                });
+                this.setUser(auth.currentUser);
+            } catch (error) {
+                console.log(error);
+                return error.code;
+            }
+        },
+        async setUser(user) {
+            try {
+                const docRef = doc(db, "users", user.uid);
+
+                this.userData = {
+                    email: user.email,
+                    uid: user.uid,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                };
+
+                await setDoc(docRef, this.userData);
+            } catch (error) {
+                console.log(error);
+            }
+        },
         async loginUser(email, password) {
             this.loadingUser = true;
             try {
@@ -39,7 +84,7 @@ export const useUserStore = defineStore("userStore", {
                     email,
                     password
                 );
-                this.userData = { email: user.email, uid: user.uid };
+                await this.setUser(user);
                 router.push("/");
             } catch (error) {
                 console.log(error.code);
@@ -52,9 +97,8 @@ export const useUserStore = defineStore("userStore", {
             const databaseStore = useDatabaseStore();
             databaseStore.$reset();
             try {
-                await signOut(auth);
-                this.userData = null;
                 router.push("/login");
+                await signOut(auth);
             } catch (error) {
                 console.log(error);
             }
@@ -63,11 +107,15 @@ export const useUserStore = defineStore("userStore", {
             return new Promise((resolve, reject) => {
                 const unsuscribe = onAuthStateChanged(
                     auth,
-                    (user) => {
+                    async (user) => {
                         if (user) {
+                            console.log(user);
+                            // await this.setUser(user);
                             this.userData = {
                                 email: user.email,
                                 uid: user.uid,
+                                displayName: user.displayName,
+                                photoURL: user.photoURL,
                             };
                         } else {
                             this.userData = null;
